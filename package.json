@@ -2,6 +2,7 @@
   "name": "smwmaplens",
   "publisher": "AtariSMWC",
   "displayName": "SMWMapLens",
+  "icon": "icon.png",
   "description": "A lens-like extension that provides on-hover descriptions of Super Mario World's ROM/RAM addresses",
   "version": "0.0.1",
   "engines": {
@@ -54,6 +55,6 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/Atari2/SMWMapLens"
   }
 }
