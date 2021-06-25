@@ -4,7 +4,7 @@
   "displayName": "SMWMapLens",
   "icon": "icon.png",
   "description": "A lens-like extension that provides on-hover descriptions of Super Mario World's ROM/RAM addresses",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.57.0"
   },
@@ -16,17 +16,32 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "smwmaplens.helloWorld",
-        "title": "Hello World"
-      }
-    ]
+    "commands": [],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "smwLens-search-view",
+          "title": "SMW Search",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "smwLens-search-view": [
+        {
+          "type": "webview",
+          "id": "smwlens-search",
+          "name": "SMW Search",
+          "icon": "media/icon.svg",
+          "contextualTitle": "RAMSearch"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
+    "compile": "rollup -c && webpack",
+    "watch": "concurrently \"rollup -c -w\" \"webpack --watch\"",
     "package": "webpack --mode production --devtool hidden-source-map",
     "test-compile": "tsc -p ./",
     "test-watch": "tsc -watch -p ./",
@@ -35,15 +50,27 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^19.0.0",
+    "@rollup/plugin-node-resolve": "^13.0.0",
+    "@rollup/plugin-typescript": "^8.2.1",
+    "@tsconfig/svelte": "^2.0.1",
     "@types/glob": "^7.1.3",
     "@types/mocha": "^8.2.2",
     "@types/node": "14.x",
     "@types/vscode": "^1.57.0",
     "@typescript-eslint/eslint-plugin": "^4.26.0",
     "@typescript-eslint/parser": "^4.26.0",
+    "concurrently": "^6.2.0",
     "eslint": "^7.27.0",
     "glob": "^7.1.7",
+    "marked": "^2.1.3",
     "mocha": "^8.4.0",
+    "rollup": "^2.3.4",
+    "rollup-plugin-svelte": "^6.0.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "svelte": "^3.38.3",
+    "svelte-check": "^2.2.0",
+    "svelte-preprocess": "^4.7.3",
     "ts-loader": "^9.2.2",
     "typescript": "^4.3.2",
     "vscode-test": "^1.5.2",
@@ -51,7 +78,8 @@
     "webpack-cli": "^4.7.0"
   },
   "dependencies": {
-    "axios": "^0.21.1"
+    "axios": "^0.21.1",
+    "get-nonce": "^1.0.1"
   },
   "repository": {
     "type": "git",

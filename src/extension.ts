@@ -1,53 +1,16 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { SidebarProvider, Address, AddressRange } from "./sideBarProvider";
 const axios = require('axios').default;
 
 const getmapUrl = 'https://www.smwcentral.net/ajax.php?a=getmap&m=';
 
-function prepareMarkdownString(description: string): string {
-    // escape bbcode
-    const reg = /\[url=(.*?)\](.*?)\[\/url\]/gs;
-    const href = /<a href="(.*?)">(.*?)<\/a>/gs;
-    const codeReg = /\[code\](.*?)\[\/code\]/gs;
-    description = description.replace('\n', '  \n');
-    description = description.replace(reg, `[$2]($1)`);
-    description = description.replace(href, `[$2]($1)`);
-    description = description.replace(codeReg, `  \n\`\`\`plaintext\n$1\n\`\`\`  \n`);
-    return description;
-}
-
-
-class Address {
-    address: string = "";
-    size: number = 0;
-    context: string | null = null;
-    type: string = "";
-    description: string = "";
-    details: object | undefined;
-    constructor(jsonObject: object) {
-        Object.assign(this, jsonObject);
-        this.size = Number.parseInt(this.size.toString());
-        this.description = prepareMarkdownString(this.description);
-    }
-}
-
-class AddressRange {
-    begin: number;
-    end: number;
-    addr: Address;
-    constructor(addr: Address) {
-        this.begin = Number.parseInt(addr.address.substring(1), 16);
-        this.end = this.begin + addr.size;
-        this.addr = addr;
-    }
-}
-
-function parseAddress(value: object) : AddressRange {
+function parseAddress(value: object): AddressRange {
     return new AddressRange(new Address(value));
 }
 
-async function getMap(name: string) : Promise<Array<AddressRange>> {
+async function getMap(name: string): Promise<Array<AddressRange>> {
     let fullUrl = `${getmapUrl}${name}`;
     let response = await axios.get(fullUrl);
     if (response.status !== 200) {
@@ -59,16 +22,20 @@ async function getMap(name: string) : Promise<Array<AddressRange>> {
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export async function activate(_: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "testextension" is now active!');
-
-    // let jsonstr = await getRamMap();//readFileSync('D:\\aless\\Documents\\GitHub\\testextension\\out\\maps\\ram_map.json', 'utf8');
     let ramMap: Array<AddressRange> = await getMap('smwram');
     let romMap: Array<AddressRange> = await getMap('smwrom');
     let regsMap: Array<AddressRange> = await getMap('smwregs');
+    const sidebarProvider = new SidebarProvider(context.extensionUri, ramMap, romMap);
+    console.log('Congratulations, your extension "smwmaplens" is now active!');
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider("smwlens-search", sidebarProvider)
+    );
+    
+
     let re = /[^#][$!]([0-9A-Fa-f]{2,6})/g;
     vscode.languages.registerHoverProvider('assembly', {
         provideHover(document, position, _) {
@@ -80,7 +47,7 @@ export async function activate(_: vscode.ExtensionContext) {
                 // we don't care about multiline
                 return;
             }
-            
+
             let realRange = range.end.character - range.start.character;
             // get 2 chars before the start and after the end of the range to see what we're checking
             let mutRange = new vscode.Range(range.start.translate(0, -2), range.end.translate(0, 2));
@@ -162,7 +129,6 @@ export async function activate(_: vscode.ExtensionContext) {
             }
         }
     });
-
 }
 
 // this method is called when your extension is deactivated
