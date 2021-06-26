@@ -1,4 +1,5 @@
 import * as _vscode from "vscode";
+import 'svelte';
 
 declare global {
     const tsvscode: {

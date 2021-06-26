@@ -19,3 +19,7 @@ False positives may occur. Please let me know with an issue if it happens.
 ### 0.1
 
 Initial release 
+
+### 0.6
+
+Search in sidebar has been added

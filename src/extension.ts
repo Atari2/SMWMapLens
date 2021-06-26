@@ -3,9 +3,9 @@
 import * as vscode from 'vscode';
 import { SidebarProvider, Address, AddressRange } from "./sideBarProvider";
 const axios = require('axios').default;
-
+const CACHE_LIMIT = 3000;
 const getmapUrl = 'https://www.smwcentral.net/ajax.php?a=getmap&m=';
-
+let cacheMap: Map<string, vscode.MarkdownString> = new Map();
 function parseAddress(value: object): AddressRange {
     return new AddressRange(new Address(value));
 }
@@ -14,6 +14,7 @@ async function getMap(name: string): Promise<Array<AddressRange>> {
     let fullUrl = `${getmapUrl}${name}`;
     let response = await axios.get(fullUrl);
     if (response.status !== 200) {
+        vscode.window.showErrorMessage("Impossible to download ram map from SMWCentral, check your internet connection.");
         throw new Error('Impossible to get ram map');
     }
     return response.data.map((x: object) => parseAddress(x));
@@ -34,7 +35,13 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider("smwlens-search", sidebarProvider)
     );
-    
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand("smwmaplens.clearCache", () => {
+            cacheMap.clear();
+        })
+    );
+
 
     let re = /[^#][$!]([0-9A-Fa-f]{2,6})/g;
     vscode.languages.registerHoverProvider('assembly', {
@@ -52,6 +59,14 @@ export async function activate(context: vscode.ExtensionContext) {
             // get 2 chars before the start and after the end of the range to see what we're checking
             let mutRange = new vscode.Range(range.start.translate(0, -2), range.end.translate(0, 2));
             let word = document.getText(mutRange).trimEnd();
+            let originalWord = word;
+            let tryCache = cacheMap.get(originalWord);
+            if (tryCache !== undefined) {
+                if (cacheMap.size > CACHE_LIMIT) {
+                    cacheMap.clear();
+                }
+                return new vscode.Hover(tryCache);
+            }
             let ifregistermayberom = false;
             // if word was trimmed and still ends with ,x || ,y, trim it
             if ((!word.endsWith(',x') || !word.endsWith(',y')) && realRange !== word.length - 2) {
@@ -101,16 +116,15 @@ export async function activate(context: vscode.ExtensionContext) {
                 val = ramMap.find(x => address >= x.begin && address < x.end);
             }
             if (val === undefined) {
-                return;
+                return new vscode.Hover(new vscode.MarkdownString("Nothing found"));
             }
+            let mrkstr = new vscode.MarkdownString();
+            let infoStr: string = "";
             if (val.addr.details === undefined) {
-                let mrkstr = new vscode.MarkdownString();
-                return new vscode.Hover(mrkstr.appendMarkdown(
-                    val.addr.size > 1 ?
-                        `${val.addr.description}  \nStarts at $${val.begin.toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')} and ends at $${(val.end - 1).toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')}.`
-                        :
-                        val.addr.description
-                ));
+                infoStr = val.addr.size > 1 ?
+                    `${val.addr.description}  \nStarts at $${val.begin.toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')} and ends at $${(val.end - 1).toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')}.`
+                    :
+                    val.addr.description;
             } else {
                 let links: Array<string> = new Array();
                 for (let [linkid, desc] of Object.entries(val.addr.details)) {
@@ -119,14 +133,15 @@ export async function activate(context: vscode.ExtensionContext) {
                     links.push(href);
                 }
                 let fullDetails = links.join('  \n');
-                let mrkstr = new vscode.MarkdownString();
-                return new vscode.Hover(mrkstr.appendMarkdown(
+                infoStr =
                     val.addr.size > 1 ?
                         `${val.addr.description}  \n${fullDetails}  \nStarts at $${val.begin.toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')} and ends at $${(val.end - 1).toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')}.`
                         :
-                        `${val.addr.description}  \n${fullDetails}`
-                ));
+                        `${val.addr.description}  \n${fullDetails}`;
             }
+            mrkstr = mrkstr.appendMarkdown(infoStr);
+            cacheMap.set(originalWord, mrkstr);
+            return new vscode.Hover(mrkstr);
         }
     });
 }
