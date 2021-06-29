@@ -11,7 +11,7 @@
             value: text
         });
     }}>
-<b>Search in RAM</b>
+Search in RAM
 </button>
 <button
     on:click={() => {
@@ -20,5 +20,5 @@
             value: text
         });
     }}>
-<b>Search in ROM</b>
+Search in ROM
 </button>

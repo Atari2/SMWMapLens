@@ -67,11 +67,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.onDidReceiveMessage(async (data) => {
             if (!data.value) {
+                this.searchResult = "";
                 return;
             }
             let match = this.hexValidate.exec(data.value);
             if (match === null) {
                 vscode.window.showErrorMessage('Invalid address');
+                this.searchResult = "Invalid address";
                 return;
             }
             let strAddr = match[1];
@@ -105,6 +107,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     // vscode.window.showInformationMessage(val.addr.description);
                 }
             }
+            this.searchResult = marked(this.searchResult);
             webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
         });
     }
@@ -154,7 +157,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             <body>
             <script nonce="${nonce}" src="${scriptUri}"></script>
             <div>
-            ${marked(this.searchResult)}
+            <hr />
+            ${this.searchResult}
             </div>
             </body>
             </html>`;
