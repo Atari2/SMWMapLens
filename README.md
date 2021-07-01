@@ -33,3 +33,7 @@ Search in sidebar has been added
 ### 0.1
 
 Changed sidebar icon, fixed a couple of bugs
+
+# Demonstration
+
+![Demo](test.gif)
