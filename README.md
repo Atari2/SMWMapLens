@@ -1,5 +1,6 @@
 # SMWMapLens README
-
+### Available on the marketplace
+Link [here](https://marketplace.visualstudio.com/items?itemName=AtariSMWC.smwmaplens)
 ## Features
 
 Gives "on hover" tooltips about RAM/ROM/Regs addresses of Super Mario World.
@@ -8,9 +9,9 @@ All the information is directly taken from the SMWC Maps.
 ## Requirements
 
 Requirements (non-dev ones):
-[Axios](https://www.npmjs.com/package/axios)
-[get-nonce](https://github.com/theKashey/get-nonce)
-[marked](https://marked.js.org)
+- [Axios](https://www.npmjs.com/package/axios) <br>
+- [get-nonce](https://github.com/theKashey/get-nonce) <br>
+- [marked](https://marked.js.org) <br>
 
 ## Known Issues
 
