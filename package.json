@@ -4,7 +4,7 @@
   "displayName": "SMWMapLens",
   "icon": "icon.png",
   "description": "A lens-like extension that provides on-hover descriptions of Super Mario World's ROM/RAM addresses",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "engines": {
     "vscode": "^1.57.0"
   },

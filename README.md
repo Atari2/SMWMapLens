@@ -35,6 +35,10 @@ Search in sidebar has been added
 
 Changed sidebar icon, fixed a couple of bugs
 
+### 0.1.1
+
+Ignore comment char in addition to whitespace (https://github.com/Atari2/SMWMapLens/pull/1)
+
 # Demonstration
 
 ![Demo](test.gif)
