@@ -44,6 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 
     let re = /[^#][$!]([0-9A-Fa-f]{2,6})/g;
+    let reTrailingWhitespaceOrComment = /(\s|;)+$/;
     vscode.languages.registerHoverProvider('assembly', {
         provideHover(document, position, _) {
             const range = document.getWordRangeAtPosition(position);
@@ -58,7 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
             let realRange = range.end.character - range.start.character;
             // get 2 chars before the start and after the end of the range to see what we're checking
             let mutRange = new vscode.Range(range.start.translate(0, -2), range.end.translate(0, 2));
-            let word = document.getText(mutRange).trimEnd();
+            let word = document.getText(mutRange).replace(reTrailingWhitespaceOrComment, "");
             let originalWord = word;
             let tryCache = cacheMap.get(originalWord);
             if (tryCache !== undefined) {
@@ -69,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             let ifregistermayberom = false;
             // if word was trimmed and still ends with ,x || ,y, trim it
-            if ((!word.endsWith(',x') || !word.endsWith(',y')) && realRange !== word.length - 2) {
+            if ((word.endsWith(',x') || word.endsWith(',y')) && realRange !== word.length - 2) {
                 word = word.substring(0, word.length - 2);
                 ifregistermayberom = true;
             }
