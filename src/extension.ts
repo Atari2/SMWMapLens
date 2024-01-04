@@ -2,6 +2,8 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { SidebarProvider, Address, AddressRange } from "./sideBarProvider";
+import { JSDOM } from 'jsdom';
+
 const axios = require('axios').default;
 const CACHE_LIMIT = 3000;
 const getmapUrl = 'https://www.smwcentral.net/ajax.php?a=getmap&m=';
@@ -19,6 +21,56 @@ async function getMap(name: string): Promise<Array<AddressRange>> {
     }
     return response.data.map((x: object) => parseAddress(x));
 }
+const LINK_PATTERN = /\[url=(.*?)\](.*?)\[\/url\]|<a href=\"(.+?)\">(.+?)<\/a>/g;
+const CODE_PATTERN = /\[code(?:=text)?\](.+?)\[\/code\]|<code>(.+?)<\/code>/g;
+const USER_PATTERN = /\[user=(\d+)(?: simple)?\]/g;
+const SIZE_PATTERN = /\[size=\d+](.+?)\[\/size]/g;
+function reSubLinkCallback(match: string, p1: string, p2: string, p3: string, p4: string, offset: number, string: string, groups: object): string {
+    if (p1 !== undefined && p2 !== undefined) {
+        return `[${p2}](${p1})`;
+    } else if (p3 !== undefined && p4 !== undefined) {
+        return `[${p4}](${p3})`;
+    } else {
+        return '';
+    }
+}
+function reSubCodeCallback(match: string, p1: string, p2: string, offset: number, string: string, groups: object): string {
+    if (p1 !== undefined) {
+        if (p1.includes('\n')) {
+            return `\`\`\`\n${p1}\n\`\`\``;
+        } else {
+            return `\`${p1}\``;
+        }
+    } else if (p2 !== undefined) {
+        if (p2.includes('\n')) {
+            return `\`\`\`\n${p2}\n\`\`\``;
+        } else {
+            return `\`${p2}\``;
+        };
+    } else {
+        return '';
+    }
+}
+function reSubUserCallback(match: string, p1: string, offset: number, string: string, groups: object): string {
+    if (p1 !== undefined) {
+        return `[user ${p1}](https://www.smwcentral.net/?p=profile&id=${p1})`;
+    } else {
+        return '';
+    }
+}
+function reSubSizeCallback(match: string, p1: string, offset: number, string: string, groups: object): string {
+    return p1;
+}
+function cleanDescription(desc: string): string {
+    let description = desc.replace(LINK_PATTERN, reSubLinkCallback);
+    description = description.replace(CODE_PATTERN, reSubCodeCallback);
+    description = description.replace(USER_PATTERN, reSubUserCallback);
+    description = description.replace(SIZE_PATTERN, reSubSizeCallback);
+    const doc = new JSDOM(description);
+    description = doc.window.document.body.textContent || "";
+    description = description.replace(/\n/g, "\n\n");
+    return description;
+}
 
 
 // this method is called when your extension is activated
@@ -30,6 +82,7 @@ export async function activate(context: vscode.ExtensionContext) {
     let ramMap: Array<AddressRange> = await getMap('smwram');
     let romMap: Array<AddressRange> = await getMap('smwrom');
     let regsMap: Array<AddressRange> = await getMap('smwregs');
+    let hijacksMap: Array<AddressRange> = await getMap('smwhijack');
     const sidebarProvider = new SidebarProvider(context.extensionUri, ramMap, romMap);
     console.log('Congratulations, your extension "smwmaplens" is now active!');
     context.subscriptions.push(
@@ -109,16 +162,31 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             let address = Number.parseInt(realAddress, 16);
             let val: AddressRange | undefined = undefined;
+            let hijacks: AddressRange[] = [];
+            let firstIsHijack: boolean = false;
             if (isregister) {
                 val = regsMap.find(x => address >= x.begin && address < x.end);
             } else if (isrom) {
                 val = romMap.find(x => address >= x.begin && address < x.end);
+                // check if it's a hijack
+                hijacks = hijacksMap.filter(x => address >= x.begin && address < x.end);
+                for (const h of hijacks) {
+                    h.addr.description = cleanDescription(h.addr.description);
+                }
+                if (val === undefined && hijacks.length > 0) {
+                    val = hijacks.pop();
+                    firstIsHijack = true;
+                    if (val !== undefined) {
+                        val.addr.description = `**Hijacks:**\n\n` + val.addr.description;
+                    }
+                }
             } else {
                 val = ramMap.find(x => address >= x.begin && address < x.end);
             }
             if (val === undefined) {
                 return new vscode.Hover(new vscode.MarkdownString("Nothing found"));
             }
+            val.addr.description = cleanDescription(val.addr.description);
             let mrkstr = new vscode.MarkdownString();
             let infoStr: string = "";
             if (val.addr.details === undefined) {
@@ -126,6 +194,12 @@ export async function activate(context: vscode.ExtensionContext) {
                     `${val.addr.description}  \nStarts at $${val.begin.toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')} and ends at $${(val.end - 1).toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')}.`
                     :
                     val.addr.description;
+                if (hijacks.length > 0 && !firstIsHijack) {
+                    infoStr += `  \n\n**Hijacks:**`;
+                }
+                for (const hj of hijacks) {
+                    infoStr += `  \n${hj.addr.description}  \nStarts at $${hj.begin.toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')} and ends at $${(hj.end - 1).toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')}.`;
+                }
             } else {
                 let links: Array<string> = new Array();
                 for (let [linkid, desc] of Object.entries(val.addr.details)) {
@@ -139,6 +213,12 @@ export async function activate(context: vscode.ExtensionContext) {
                         `${val.addr.description}  \n${fullDetails}  \nStarts at $${val.begin.toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')} and ends at $${(val.end - 1).toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')}.`
                         :
                         `${val.addr.description}  \n${fullDetails}`;
+                if (hijacks.length > 0 && !firstIsHijack) {
+                    infoStr += `  \n\n**Hijacks:**`;
+                }
+                for (const hj of hijacks) {
+                    infoStr += `  \n${hj.addr.description}  \nStarts at $${hj.begin.toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')} and ends at $${(hj.end - 1).toString(16).toUpperCase().padStart(isregister ? 4 : 6, '0')}.`;
+                }
             }
             mrkstr = mrkstr.appendMarkdown(infoStr);
             cacheMap.set(originalWord, mrkstr);

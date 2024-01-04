@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { getNonce } from "get-nonce";
-let marked = require('marked');
+import { marked } from 'marked';
 
 export function prepareMarkdownString(description: string): string {
     // escape bbcode
@@ -107,7 +107,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     // vscode.window.showInformationMessage(val.addr.description);
                 }
             }
-            this.searchResult = marked(this.searchResult);
+            this.searchResult = await marked(this.searchResult);
             webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
         });
     }
