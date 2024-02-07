@@ -71,6 +71,13 @@ function cleanDescription(desc: string): string {
     description = description.replace(/\n/g, "\n\n");
     return description;
 }
+function sortBySizeAsc(addressRanges: Array<AddressRange>): Array<AddressRange> {
+  return addressRanges.sort((ar1, ar2) => {
+    if (ar1.addr.size < ar2.addr.size) return -1;
+    if (ar1.addr.size > ar2.addr.size) return 1;
+    return 0;
+  })
+}
 
 
 // this method is called when your extension is activated
@@ -79,10 +86,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    let ramMap: Array<AddressRange> = await getMap('smwram');
-    let romMap: Array<AddressRange> = await getMap('smwrom');
-    let regsMap: Array<AddressRange> = await getMap('smwregs');
-    let hijacksMap: Array<AddressRange> = await getMap('smwhijack');
+    let ramMap: Array<AddressRange> = sortBySizeAsc(await getMap('smwram'));
+    let romMap: Array<AddressRange> = sortBySizeAsc(await getMap('smwrom'));
+    let regsMap: Array<AddressRange> = sortBySizeAsc(await getMap('smwregs'));
+    let hijacksMap: Array<AddressRange> = sortBySizeAsc(await getMap('smwhijack'));
     const sidebarProvider = new SidebarProvider(context.extensionUri, ramMap, romMap);
     console.log('Congratulations, your extension "smwmaplens" is now active!');
     context.subscriptions.push(
