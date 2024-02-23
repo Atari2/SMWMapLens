@@ -103,7 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
 
-    let re = /[^#][$!]([0-9A-Fa-f]{2,6})/g;
+    let re = /(?:[^#]|^)[$!]([0-9A-Fa-f]{2,6})/g;
     let reTrailingWhitespaceOrComment = /(\s|;)+$/;
     vscode.languages.registerHoverProvider('assembly', {
         provideHover(document, position, _) {
@@ -118,7 +118,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
             let realRange = range.end.character - range.start.character;
             // get 2 chars before the start and after the end of the range to see what we're checking
-            let mutRange = new vscode.Range(range.start.translate(0, -2), range.end.translate(0, 2));
+            let mutRange: vscode.Range;
+            try {
+                mutRange = new vscode.Range(range.start.translate(0, -2), range.end.translate(0, 2));
+            } catch (error) {
+                // if we can't get 2 chars before the start, get 1 char before and 2 after
+                mutRange = new vscode.Range(range.start.translate(0, -1), range.end.translate(0, 2));
+            }
             let word = document.getText(mutRange).replace(reTrailingWhitespaceOrComment, "");
             let originalWord = word;
             let tryCache = cacheMap.get(originalWord);

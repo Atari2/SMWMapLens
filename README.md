@@ -37,7 +37,17 @@ Changed sidebar icon, fixed a couple of bugs
 
 ### 0.1.1
 
-Ignore comment char in addition to whitespace (https://github.com/Atari2/SMWMapLens/pull/1)
+Ignore comment char in addition to whitespace [#1](https://github.com/Atari2/SMWMapLens/pull/1)
+
+### 0.1.2
+
+Make it so hijacks are also shown when hovering over ROM addresses.
+
+### 0.1.3
+
+Show "most specific" address instead of the first one found, this is usually the one with the smallest range. [#2](https://github.com/Atari2/SMWMapLens/pull/2)
+
+Fix a bug where the on-hover would not show up if the address was at the start of the line.
 
 # Demonstration
 
